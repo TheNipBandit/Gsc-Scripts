@@ -1,0 +1,117 @@
+/*****************************************************************
+ * Decompiled by ATE47 and Edited by SyndiShanX
+ * Script: zm_common\trials\zm_trial_kill_enemies_for_health.gsc
+*****************************************************************/
+
+#include scripts\core_common\laststand_shared;
+#include scripts\core_common\math_shared;
+#include scripts\core_common\system_shared;
+#include scripts\core_common\util_shared;
+#include scripts\zm_common\zm_round_logic;
+#include scripts\zm_common\zm_spawner;
+#include scripts\zm_common\zm_trial;
+#include scripts\zm_common\zm_utility;
+#namespace zm_trial_kill_enemies_for_health;
+
+autoexec __init__system__() {
+  system::register(#"zm_trial_kill_enemies_for_health", &__init__, undefined, undefined);
+}
+
+__init__() {
+  if(!zm_trial::is_trial_mode()) {
+    return;
+  }
+
+  zm_trial::register_challenge(#"kill_enemies_for_health", &on_begin, &on_end);
+}
+
+on_begin(var_b9c6550, var_50d1120, var_43f824d6, var_73d6ae36) {
+  if(isDefined(var_b9c6550)) {
+    self.var_97330ad2 = zm_trial::function_5769f26a(var_b9c6550);
+  } else {
+    self.var_97330ad2 = 25;
+  }
+
+  if(isDefined(var_50d1120)) {
+    self.var_6633a592 = zm_trial::function_5769f26a(var_50d1120);
+  } else {
+    self.var_6633a592 = 8;
+  }
+
+  if(isDefined(var_43f824d6)) {
+    self.var_ead3a0f2 = zm_trial::function_5769f26a(var_43f824d6);
+  } else {
+    self.var_ead3a0f2 = 1.1;
+  }
+
+  if(isDefined(var_73d6ae36)) {
+    var_73d6ae36 = zm_trial::function_5769f26a(var_73d6ae36);
+  }
+
+  self thread function_e997bb0b(var_73d6ae36);
+  zm_spawner::register_zombie_death_event_callback(&function_138aec8e);
+}
+
+on_end(round_reset) {
+  zm_spawner::deregister_zombie_death_event_callback(&function_138aec8e);
+}
+
+function_e997bb0b(var_73d6ae36) {
+  level endon(#"trial_round_end", #"end_game");
+
+  if(isDefined(var_73d6ae36)) {
+    wait var_73d6ae36;
+  } else {
+    n_delay = zm_round_logic::get_delay_between_rounds();
+    wait n_delay + 0;
+  }
+
+  while(true) {
+    foreach(player in getPlayers()) {
+      if(isgodmode(player) || player isinmovemode("<dev string:x38>", "<dev string:x41>")) {
+        continue;
+      }
+
+      if(player.health > 0 && !player laststand::player_is_in_laststand() && !(isDefined(player.var_eb319d10) && player.var_eb319d10) && !(isDefined(level.intermission) && level.intermission)) {
+        if(player.health <= self.var_6633a592) {
+          if(zm_utility::is_magic_bullet_shield_enabled(player)) {
+            player util::stop_magic_bullet_shield();
+          }
+
+          player dodamage(player.health + 1000, player.origin);
+          continue;
+        }
+
+        if(isDefined(player.armor) && player.armor > 0) {
+          player dodamage(self.var_6633a592 + 5, player.origin);
+          continue;
+        }
+
+        player dodamage(self.var_6633a592, player.origin);
+      }
+    }
+
+    wait self.var_ead3a0f2;
+  }
+}
+
+function_49091c27() {
+  challenge = zm_trial::function_a36e8c38(#"kill_enemies_for_health");
+  assert(isDefined(challenge));
+  new_health = self.health + challenge.var_97330ad2;
+  self.health = int(math::clamp(floor(new_health), 0, max(self.maxhealth, self.var_66cb03ad)));
+}
+
+function_138aec8e(attacker) {
+  if(isDefined(self.nuked) && self.nuked) {
+    foreach(player in getPlayers()) {
+      player function_49091c27();
+    }
+
+    return;
+  }
+
+  if(isPlayer(attacker)) {
+    attacker function_49091c27();
+  }
+}

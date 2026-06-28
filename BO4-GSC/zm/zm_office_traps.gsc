@@ -1,0 +1,159 @@
+/***********************************************
+ * Decompiled by ATE47 and Edited by SyndiShanX
+ * Script: zm\zm_office_traps.gsc
+***********************************************/
+
+#include scripts\core_common\array_shared;
+#include scripts\core_common\flag_shared;
+#include scripts\zm_common\zm_items;
+#include scripts\zm_common\zm_ui_inventory;
+#include scripts\zm_common\zm_utility;
+#namespace zm_office_traps;
+
+init() {
+  level init_flags();
+  level.var_e2103f01 = 0;
+  zm_items::function_4d230236(getweapon(#"hash_31fb0b01bd55c7bf"), &function_a28f0b21);
+  zm_items::function_4d230236(getweapon(#"hash_31fb0c01bd55c972"), &function_af5c24bb);
+  level function_e021562c();
+}
+
+init_flags() {
+  level flag::init("trap_elevator");
+  level flag::init("trap_quickrevive");
+  level flag::init(#"hash_7b57f5f8bfe10b93");
+}
+
+function_a28f0b21(e_holder, w_item) {
+  self playSound(#"hash_230737b2535a3374");
+  level.var_e2103f01 += 1;
+
+  if(function_8b1a219a()) {
+    level.fix_trigger_array[0] setHintString(#"hash_323a35945e51c09a");
+    level.fix_trigger_array[1] setHintString(#"hash_323a35945e51c09a");
+  } else {
+    level.fix_trigger_array[0] setHintString(#"hash_595a7e6ce85abd6e");
+    level.fix_trigger_array[1] setHintString(#"hash_595a7e6ce85abd6e");
+  }
+
+  level flag::set(#"hash_7b57f5f8bfe10b93");
+}
+
+function_af5c24bb(e_holder, w_item) {
+  self playSound(#"hash_230737b2535a3374");
+  level.var_e2103f01 += 1;
+
+  if(function_8b1a219a()) {
+    level.fix_trigger_array[0] setHintString(#"hash_323a35945e51c09a");
+    level.fix_trigger_array[1] setHintString(#"hash_323a35945e51c09a");
+    return;
+  }
+
+  level.fix_trigger_array[0] setHintString(#"hash_595a7e6ce85abd6e");
+  level.fix_trigger_array[1] setHintString(#"hash_595a7e6ce85abd6e");
+}
+
+function_e021562c() {
+  level.fix_trigger_array = getEntArray("trigger_battery_trap_fix", "targetname");
+
+  if(isDefined(level.fix_trigger_array)) {
+    array::thread_all(level.fix_trigger_array, &fix_electric_trap);
+  }
+}
+
+fix_electric_trap() {
+  if(!isDefined(self.script_flag_wait)) {
+    return;
+  }
+
+  if(!isDefined(self.script_string)) {
+    return;
+  }
+
+  self setHintString(#"hash_100d349fbdcacb2b");
+  self setCursorHint("HINT_NOICON");
+  self useTriggerRequireLookAt();
+  trap_trigger = getEntArray(self.script_flag_wait, "targetname");
+  array::thread_all(trap_trigger, &electric_hallway_trap_piece_hide, self.script_flag_wait);
+  trap_cover = getEnt(self.script_string, "targetname");
+  level thread function_5bd53e9b(trap_cover, self.script_flag_wait);
+
+  if(zm_utility::is_standard()) {
+    level flag::set(self.script_flag_wait);
+  } else {
+    while(!level flag::get(self.script_flag_wait)) {
+      waitresult = self waittill(#"trigger");
+      who = waitresult.activator;
+
+      if(zm_utility::is_player_valid(who)) {
+        if(!isDefined(level.var_e2103f01) || level.var_e2103f01 == 0) {
+          zm_utility::play_sound_at_pos("no_purchase", self.origin);
+          continue;
+        }
+
+        if(isDefined(level.var_e2103f01) && level.var_e2103f01 > 0) {
+          self playSound("zmb_battery_insert");
+          level flag::set(self.script_flag_wait);
+          level.var_e2103f01 -= 1;
+
+          if(level.var_e2103f01 == 0) {
+            level.fix_trigger_array[0] setHintString(#"hash_100d349fbdcacb2b");
+            level.fix_trigger_array[1] setHintString(#"hash_100d349fbdcacb2b");
+          }
+
+          if(level flag::get(#"hash_7b57f5f8bfe10b93")) {
+            level zm_ui_inventory::function_7df6bb60(#"hash_48c5bcc6c9fab9d6", 1);
+            level zm_ui_inventory::function_7df6bb60(#"hash_2695edd24ddf6e7b", 1);
+            level flag::clear(#"hash_7b57f5f8bfe10b93");
+            continue;
+          }
+
+          level zm_ui_inventory::function_7df6bb60(#"hash_7d940511ce9f0341", 1);
+          level zm_ui_inventory::function_7df6bb60(#"hash_4a5aa2652a3ee760", 1);
+        }
+      }
+    }
+  }
+
+  self setHintString("");
+  self triggerenable(0);
+}
+
+electric_hallway_trap_piece_hide(str_flag) {
+  if(!isDefined(str_flag)) {
+    return;
+  }
+
+  if(self.classname == "trigger_use_new") {
+    self setHintString(#"zombie/need_power");
+    self thread electric_hallway_trap_piece_show(str_flag);
+    self triggerenable(0);
+  }
+}
+
+electric_hallway_trap_piece_show(str_flag) {
+  if(!isDefined(str_flag)) {
+    return;
+  }
+
+  if(self.classname == "trigger_use_new") {
+    level flag::wait_till(str_flag);
+    self triggerenable(1);
+  }
+}
+
+function_5bd53e9b(ent_cover, str_flag) {
+  level flag::wait_till(str_flag);
+  ent_cover notsolid();
+  ent_cover.fx = spawn("script_model", ent_cover.origin);
+  ent_cover.fx setModel("tag_origin");
+  ent_cover movez(48, 1, 0.4, 0);
+  ent_cover waittill(#"movedone");
+  ent_cover rotateroll(360 * randomintrange(4, 10), 1.2, 0.6, 0);
+  playFXOnTag(level._effect[#"poltergeist"], ent_cover.fx, "tag_origin");
+  ent_cover waittill(#"rotatedone");
+  ent_cover hide();
+  ent_cover.fx hide();
+  ent_cover.fx delete();
+  ent_cover delete();
+}

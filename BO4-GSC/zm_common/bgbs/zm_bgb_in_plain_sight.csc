@@ -1,0 +1,45 @@
+/****************************************************
+ * Decompiled by ATE47 and Edited by SyndiShanX
+ * Script: zm_common\bgbs\zm_bgb_in_plain_sight.csc
+****************************************************/
+
+#include scripts\core_common\clientfield_shared;
+#include scripts\core_common\postfx_shared;
+#include scripts\core_common\system_shared;
+#include scripts\core_common\visionset_mgr_shared;
+#include scripts\zm_common\zm_bgb;
+#namespace zm_bgb_in_plain_sight;
+
+autoexec __init__system__() {
+  system::register(#"zm_bgb_in_plain_sight", &__init__, undefined, #"bgb");
+}
+
+__init__() {
+  if(!(isDefined(level.bgb_in_use) && level.bgb_in_use)) {
+    return;
+  }
+
+  bgb::register(#"zm_bgb_in_plain_sight", "activated");
+  visionset_mgr::register_visionset_info("zm_bgb_in_plain_sight", 1, 31, undefined, "zm_bgb_in_plain_sight");
+  clientfield::register("toplayer", "" + #"zm_bgb_in_plain_sight_postfx", 1, 1, "int", &function_8b05d1ce, 0, 0);
+}
+
+function_8b05d1ce(localclientnum, oldval, newval, bnewent, binitialsnap, fieldname, bwasdemojump) {
+  if(newval == 1) {
+    self thread postfx::playpostfxbundle(#"pstfx_zm_bgb_in_plain_sight");
+
+    if(!isDefined(self.var_6fc0e881)) {
+      self playSound(localclientnum, #"zmb_bgb_plainsight_start_plr");
+      self.var_6fc0e881 = self playLoopSound(#"zmb_bgb_plainsight_loop_plr");
+    }
+
+    return;
+  }
+
+  self postfx::stoppostfxbundle(#"pstfx_zm_bgb_in_plain_sight");
+
+  if(isDefined(self.var_6fc0e881)) {
+    self playSound(localclientnum, #"zmb_bgb_plainsight_end_plr");
+    self stoploopsound(self.var_6fc0e881);
+  }
+}
